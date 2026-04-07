@@ -29,83 +29,105 @@ type Application = {
   apartment: string | null;
 };
 
-async function fillRequired(page: Page, selector: string, value: string | null | undefined, fieldName: string) {
+// ===== REQUIRED FIELD =====
+async function fillRequired(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
   if (!value) {
     throw new Error(`Missing value for ${fieldName}`);
   }
 
-  const locator = page.locator(selector).first();
-  const count = await locator.count();
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    const count = await locator.count();
 
-  console.log(`[${fieldName}] selector=${selector} count=${count} value=${value}`);
+    console.log(`[${fieldName}] trying ${selector} count=${count}`);
 
-  if (count === 0) {
-    throw new Error(`Selector not found for ${fieldName}: ${selector}`);
+    if (count > 0) {
+      await locator.fill(value);
+
+      const actualValue = await locator.inputValue().catch(() => "");
+      console.log(`[${fieldName}] filled with ${selector} = ${actualValue}`);
+      return;
+    }
   }
 
-  await locator.fill(value);
-
-  const actualValue = await locator.inputValue().catch(() => "");
-  console.log(`[${fieldName}] filled value now = ${actualValue}`);
+  throw new Error(`Selector not found for ${fieldName}: ${selectors.join(" | ")}`);
 }
 
-async function fillOptional(page: Page, selector: string, value: string | null | undefined, fieldName: string) {
+// ===== OPTIONAL FIELD =====
+async function fillOptional(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
   if (!value) {
-    console.log(`[${fieldName}] skipped - no value`);
+    console.log(`[${fieldName}] skipped`);
     return;
   }
 
-  const locator = page.locator(selector).first();
-  const count = await locator.count();
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    const count = await locator.count();
 
-  console.log(`[${fieldName}] selector=${selector} count=${count} value=${value}`);
-
-  if (count === 0) {
-    console.log(`[${fieldName}] selector not found`);
-    return;
+    if (count > 0) {
+      await locator.fill(value);
+      console.log(`[${fieldName}] filled using ${selector}`);
+      return;
+    }
   }
 
-  await locator.fill(value);
-
-  const actualValue = await locator.inputValue().catch(() => "");
-  console.log(`[${fieldName}] filled value now = ${actualValue}`);
+  console.log(`[${fieldName}] no selector matched`);
 }
 
-async function checkRequired(page: Page, selector: string, fieldName: string) {
-  const locator = page.locator(selector).first();
-  const count = await locator.count();
+// ===== CHECKBOX =====
+async function checkRequired(page: Page, selectors: string[], fieldName: string) {
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    const count = await locator.count();
 
-  if (count === 0) {
-    throw new Error(`Checkbox selector not found for ${fieldName}: ${selector}`);
+    if (count > 0) {
+      await locator.check().catch(async () => {
+        await locator.click();
+      });
+
+      console.log(`[${fieldName}] checked`);
+      return;
+    }
   }
 
-  await locator.check().catch(async () => {
-    await locator.click();
-  });
+  throw new Error(`Checkbox not found for ${fieldName}`);
 }
 
-  async function handleStep1(page: Page, application: Application) {
+// ===== STEP 1 =====
+async function handleStep1(page: Page, application: Application) {
   console.log("Starting Step 1");
 
-  await fillRequired(page, '#first_name', application.first_name, "first_name");
-  await fillRequired(page, '#last_name', application.last_name, "last_name");
-  await fillRequired(page, ['#customer_id', '#id_number', '[name="id_number"]'], application.id_number, "id_number");
-  await fillRequired(page, '#phone', application.phone, "phone");
+  await fillRequired(page, ['#first_name'], application.first_name, "first_name");
+  await fillRequired(page, ['#last_name'], application.last_name, "last_name");
 
-  await fillOptional(page, '#id_issue_date', application.id_issue_date, "id_issue_date");
-  await fillOptional(page, '#birth_date', application.birth_date, "birth_date");
-  await fillOptional(page, '#gender', application.gender, "gender");
-  await fillOptional(page, '#marital_status', application.marital_status, "marital_status");
-  await fillOptional(page, '#city', application.city, "city");
-  await fillOptional(page, '#street', application.street, "street");
-  await fillOptional(page, '#house_number', application.house_number, "house_number");
-  await fillOptional(page, '#apartment', application.apartment || "1", "apartment");
+  await fillRequired(
+    page,
+    ['#customer_id', '#id_number', '[name="id_number"]'],
+    application.id_number,
+    "id_number"
+  );
 
-  await checkRequired(page, '#customer_identification_declaration', "customer_identification_declaration");
+  await fillRequired(page, ['#phone'], application.phone, "phone");
+
+  await fillOptional(page, ['#id_issue_date'], application.id_issue_date, "id_issue_date");
+  await fillOptional(page, ['#birth_date'], application.birth_date, "birth_date");
+  await fillOptional(page, ['#gender'], application.gender, "gender");
+  await fillOptional(page, ['#marital_status'], application.marital_status, "marital_status");
+  await fillOptional(page, ['#city'], application.city, "city");
+  await fillOptional(page, ['#street'], application.street, "street");
+  await fillOptional(page, ['#house_number'], application.house_number, "house_number");
+  await fillOptional(page, ['#apartment'], application.apartment || "1", "apartment");
+
+  await checkRequired(
+    page,
+    ['#customer_identification_declaration', '[name="customer_identification_declaration"]'],
+    "customer_identification_declaration"
+  );
 
   console.log("Step 1 filled successfully");
 }
 
+// ===== MAIN =====
 async function main() {
   console.log("credit-agent started");
 
@@ -120,23 +142,23 @@ async function main() {
   console.log("Checking for pending runs...");
 
   const { data: runs, error: runError } = await supabase
-  .from("agent_runs")
-  .select("*")
-  .eq("status", "pending")
-  .order("created_at", { ascending: false })
-  .limit(1);
+    .from("agent_runs")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1);
 
   if (runError) {
-    throw new Error(`Supabase run query error: ${runError.message}`);
+    throw new Error(runError.message);
   }
 
   if (!runs || runs.length === 0) {
-    console.log("No pending runs found");
+    console.log("No pending runs");
     return;
   }
 
   const run = runs[0] as AgentRun;
-  console.log("Pending run found:", run.id);
+  console.log("Run:", run.id);
 
   const { data: application, error: appError } = await supabase
     .from("applications")
@@ -144,40 +166,32 @@ async function main() {
     .eq("id", run.application_id)
     .single();
 
-  if (appError) {
-    throw new Error(`Application query error: ${appError.message}`);
-  }
+  if (appError) throw new Error(appError.message);
 
-  console.log("Application loaded:", application.id);
+  console.log("Application:", application.id);
 
   const browser = await chromium.launch({ headless: HEADLESS });
   const page = await browser.newPage();
 
   try {
-    console.log("Opening simulation:", SIMULATION_URL);
-
     await page.goto(SIMULATION_URL, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
 
-    console.log("Page loaded successfully");
-
     await handleStep1(page, application as Application);
 
-   await page.screenshot({ path: "/tmp/step1-filled.png", fullPage: true });
+    await page.screenshot({ path: "/tmp/step1-filled.png", fullPage: true });
 
-const fileBuffer = fs.readFileSync("/tmp/step1-filled.png");
+    const fileBuffer = fs.readFileSync("/tmp/step1-filled.png");
 
-await supabase.storage
-  .from("screenshots")
-  .upload(`step1-${Date.now()}.png`, fileBuffer, {
-    contentType: "image/png",
-  });
+    await supabase.storage
+      .from("screenshots")
+      .upload(`step1-${Date.now()}.png`, fileBuffer, {
+        contentType: "image/png",
+      });
 
-console.log("Screenshot uploaded to Supabase");
-
-    console.log("Agent finished successfully after Step 1");
+    console.log("Screenshot uploaded");
   } finally {
     await browser.close();
   }
