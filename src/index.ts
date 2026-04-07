@@ -89,7 +89,7 @@ async function checkRequired(page: Page, selector: string, fieldName: string) {
 
   await fillRequired(page, '#first_name', application.first_name, "first_name");
   await fillRequired(page, '#last_name', application.last_name, "last_name");
-  await fillRequired(page, '#id_number', application.id_number, "id_number");
+  await fillRequired(page, ['#customer_id', '#id_number', '[name="id_number"]'], application.id_number, "id_number");
   await fillRequired(page, '#phone', application.phone, "phone");
 
   await fillOptional(page, '#id_issue_date', application.id_issue_date, "id_issue_date");
