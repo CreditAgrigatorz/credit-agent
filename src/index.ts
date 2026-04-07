@@ -74,6 +74,39 @@ async function fillOptional(page: Page, selectors: string[], value: string | nul
   console.log(`[${fieldName}] no selector matched`);
 }
 
+async function selectOptional(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
+  if (!value) {
+    console.log(`[${fieldName}] skipped`);
+    return;
+  }
+
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    const count = await locator.count();
+
+    if (count > 0) {
+      await locator.selectOption({ label: value }).catch(async () => {
+        await locator.selectOption({ value: value }).catch(async () => {
+          const options = await locator.locator("option").allTextContents();
+          const matched = options.find((opt) => opt.trim() === value.trim());
+
+          if (matched) {
+            await locator.selectOption({ label: matched });
+            return;
+          }
+
+          throw new Error(`No matching option for ${fieldName}: ${value}`);
+        });
+      });
+
+      console.log(`[${fieldName}] selected using ${selector}`);
+      return;
+    }
+  }
+
+  console.log(`[${fieldName}] no selector matched`);
+}
+
 // ===== CHECKBOX =====
 async function checkRequired(page: Page, selectors: string[], fieldName: string) {
   for (const selector of selectors) {
@@ -121,7 +154,7 @@ async function handleStep1(page: Page, application: Application) {
 } else if (application.gender === "נקבה") {
   await page.click('text=נקבה');
 }
-  await fillOptional(page, ['#marital_status'], application.marital_status, "marital_status");
+  await selectOptional(page, ['#marital_status'], application.marital_status, "marital_status");
   await fillOptional(page, ['#city'], application.city, "city");
   await fillOptional(page, ['#street'], application.street, "street");
   await fillOptional(page, ['#house_number'], application.house_number, "house_number");
