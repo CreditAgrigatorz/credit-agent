@@ -116,7 +116,11 @@ async function handleStep1(page: Page, application: Application) {
 
   await fillOptional(page, ['#id_issue_date'], application.id_issue_date, "id_issue_date");
   await fillOptional(page, ['#birth_date'], application.birth_date, "birth_date");
-  await fillOptional(page, ['#gender'], application.gender, "gender");
+  if (application.gender === "זכר") {
+  await page.click('text=זכר');
+} else if (application.gender === "נקבה") {
+  await page.click('text=נקבה');
+}
   await fillOptional(page, ['#marital_status'], application.marital_status, "marital_status");
   await fillOptional(page, ['#city'], application.city, "city");
   await fillOptional(page, ['#street'], application.street, "street");
