@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
-    "playwright": "^1.52.0"
+    "playwright": "1.59.1"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
