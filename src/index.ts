@@ -29,47 +29,79 @@ type Application = {
   apartment: string | null;
 };
 
-async function fillIfExists(page: Page, selector: string, value: string | null | undefined) {
-  if (!value) return;
-  const locator = page.locator(selector).first();
-  if (await locator.count()) {
-    await locator.fill(value);
+async function fillRequired(page: Page, selector: string, value: string | null | undefined, fieldName: string) {
+  if (!value) {
+    throw new Error(`Missing value for ${fieldName}`);
   }
+
+  const locator = page.locator(selector).first();
+  const count = await locator.count();
+
+  console.log(`[${fieldName}] selector=${selector} count=${count} value=${value}`);
+
+  if (count === 0) {
+    throw new Error(`Selector not found for ${fieldName}: ${selector}`);
+  }
+
+  await locator.fill(value);
+
+  const actualValue = await locator.inputValue().catch(() => "");
+  console.log(`[${fieldName}] filled value now = ${actualValue}`);
 }
 
-async function checkIfExists(page: Page, selector: string) {
-  const locator = page.locator(selector).first();
-  if (await locator.count()) {
-    await locator.check().catch(async () => {
-      await locator.click();
-    });
+async function fillOptional(page: Page, selector: string, value: string | null | undefined, fieldName: string) {
+  if (!value) {
+    console.log(`[${fieldName}] skipped - no value`);
+    return;
   }
+
+  const locator = page.locator(selector).first();
+  const count = await locator.count();
+
+  console.log(`[${fieldName}] selector=${selector} count=${count} value=${value}`);
+
+  if (count === 0) {
+    console.log(`[${fieldName}] selector not found`);
+    return;
+  }
+
+  await locator.fill(value);
+
+  const actualValue = await locator.inputValue().catch(() => "");
+  console.log(`[${fieldName}] filled value now = ${actualValue}`);
 }
 
-async function clickIfExists(page: Page, selector: string) {
+async function checkRequired(page: Page, selector: string, fieldName: string) {
   const locator = page.locator(selector).first();
-  if (await locator.count()) {
+  const count = await locator.count();
+
+  if (count === 0) {
+    throw new Error(`Checkbox selector not found for ${fieldName}: ${selector}`);
+  }
+
+  await locator.check().catch(async () => {
     await locator.click();
-  }
+  });
 }
 
-async function handleStep1(page: Page, application: Application) {
+  async function handleStep1(page: Page, application: Application) {
   console.log("Starting Step 1");
 
-  await fillIfExists(page, '[name="first_name"]', application.first_name);
-  await fillIfExists(page, '[name="last_name"]', application.last_name);
-  await fillIfExists(page, '[name="id_number"]', application.id_number);
-  await fillIfExists(page, '[name="id_issue_date"]', application.id_issue_date);
-  await fillIfExists(page, '[name="birth_date"]', application.birth_date);
-  await fillIfExists(page, '[name="phone"]', application.phone);
-  await fillIfExists(page, '[name="gender"]', application.gender);
-  await fillIfExists(page, '[name="marital_status"]', application.marital_status);
-  await fillIfExists(page, '[name="city"]', application.city);
-  await fillIfExists(page, '[name="street"]', application.street);
-  await fillIfExists(page, '[name="house_number"]', application.house_number);
-  await fillIfExists(page, '[name="apartment"]', application.apartment || "1");
+  await fillRequired(page, '[name="first_name"]', application.first_name, "first_name");
+  await fillRequired(page, '[name="last_name"]', application.last_name, "last_name");
+  await fillRequired(page, '[name="id_number"]', application.id_number, "id_number");
+  await fillRequired(page, '[name="phone"]', application.phone, "phone");
 
-  await checkIfExists(page, '[name="customer_identification_declaration"]');
+  await fillOptional(page, '[name="id_issue_date"]', application.id_issue_date, "id_issue_date");
+  await fillOptional(page, '[name="birth_date"]', application.birth_date, "birth_date");
+  await fillOptional(page, '[name="gender"]', application.gender, "gender");
+  await fillOptional(page, '[name="marital_status"]', application.marital_status, "marital_status");
+  await fillOptional(page, '[name="city"]', application.city, "city");
+  await fillOptional(page, '[name="street"]', application.street, "street");
+  await fillOptional(page, '[name="house_number"]', application.house_number, "house_number");
+  await fillOptional(page, '[name="apartment"]', application.apartment || "1", "apartment");
+
+  await checkRequired(page, '[name="customer_identification_declaration"]', "customer_identification_declaration");
 
   console.log("Step 1 filled successfully");
 }
