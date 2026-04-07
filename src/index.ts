@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { chromium, Page } from "playwright";
+import fs from "fs";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -132,8 +133,17 @@ async function main() {
 
     await handleStep1(page, application as Application);
 
-    await page.screenshot({ path: "/tmp/step1-filled.png", fullPage: true });
-    console.log("Screenshot saved: /tmp/step1-filled.png");
+   await page.screenshot({ path: "/tmp/step1-filled.png", fullPage: true });
+
+const fileBuffer = fs.readFileSync("/tmp/step1-filled.png");
+
+await supabase.storage
+  .from("screenshots")
+  .upload(`step1-${Date.now()}.png`, fileBuffer, {
+    contentType: "image/png",
+  });
+
+console.log("Screenshot uploaded to Supabase");
 
     console.log("Agent finished successfully after Step 1");
   } finally {
