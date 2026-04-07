@@ -87,21 +87,21 @@ async function checkRequired(page: Page, selector: string, fieldName: string) {
   async function handleStep1(page: Page, application: Application) {
   console.log("Starting Step 1");
 
-  await fillRequired(page, '[name="first_name"]', application.first_name, "first_name");
-  await fillRequired(page, '[name="last_name"]', application.last_name, "last_name");
-  await fillRequired(page, '[name="id_number"]', application.id_number, "id_number");
-  await fillRequired(page, '[name="phone"]', application.phone, "phone");
+  await fillRequired(page, '#first_name', application.first_name, "first_name");
+  await fillRequired(page, '#last_name', application.last_name, "last_name");
+  await fillRequired(page, '#id_number', application.id_number, "id_number");
+  await fillRequired(page, '#phone', application.phone, "phone");
 
-  await fillOptional(page, '[name="id_issue_date"]', application.id_issue_date, "id_issue_date");
-  await fillOptional(page, '[name="birth_date"]', application.birth_date, "birth_date");
-  await fillOptional(page, '[name="gender"]', application.gender, "gender");
-  await fillOptional(page, '[name="marital_status"]', application.marital_status, "marital_status");
-  await fillOptional(page, '[name="city"]', application.city, "city");
-  await fillOptional(page, '[name="street"]', application.street, "street");
-  await fillOptional(page, '[name="house_number"]', application.house_number, "house_number");
-  await fillOptional(page, '[name="apartment"]', application.apartment || "1", "apartment");
+  await fillOptional(page, '#id_issue_date', application.id_issue_date, "id_issue_date");
+  await fillOptional(page, '#birth_date', application.birth_date, "birth_date");
+  await fillOptional(page, '#gender', application.gender, "gender");
+  await fillOptional(page, '#marital_status', application.marital_status, "marital_status");
+  await fillOptional(page, '#city', application.city, "city");
+  await fillOptional(page, '#street', application.street, "street");
+  await fillOptional(page, '#house_number', application.house_number, "house_number");
+  await fillOptional(page, '#apartment', application.apartment || "1", "apartment");
 
-  await checkRequired(page, '[name="customer_identification_declaration"]', "customer_identification_declaration");
+  await checkRequired(page, '#customer_identification_declaration', "customer_identification_declaration");
 
   console.log("Step 1 filled successfully");
 }
