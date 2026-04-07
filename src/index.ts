@@ -87,10 +87,11 @@ async function main() {
   console.log("Checking for pending runs...");
 
   const { data: runs, error: runError } = await supabase
-    .from("agent_runs")
-    .select("*")
-    .eq("status", "pending")
-    .limit(1);
+  .from("agent_runs")
+  .select("*")
+  .eq("status", "pending")
+  .order("created_at", { ascending: false })
+  .limit(1);
 
   if (runError) {
     throw new Error(`Supabase run query error: ${runError.message}`);
