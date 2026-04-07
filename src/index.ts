@@ -14,6 +14,7 @@ type AgentRun = {
 };
 
 type Application = {
+  requested_amount: number | null;
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -147,6 +148,13 @@ async function handleStep1(page: Page, application: Application) {
   "phone"
 );
 
+  await fillOptional(
+  page,
+  ['#estimated_amount'],
+  application.requested_amount ? String(application.requested_amount) : null,
+  "requested_amount"
+);
+  
   await fillOptional(page, ['#id_issue_date'], application.id_issue_date, "id_issue_date");
   await fillOptional(page, ['#birth_date'], application.birth_date, "birth_date");
   if (application.gender === "זכר") {
@@ -156,6 +164,16 @@ async function handleStep1(page: Page, application: Application) {
 }
   await selectOptional(page, ['#marital_status'], application.marital_status, "marital_status");
   await fillOptional(page, ['#city'], application.city, "city");
+  wait fillOptional(page, ['#city'], application.city, "city");
+
+await fillOptional(
+  page,
+  ['#estimated_amount'],
+  application.requested_amount ? String(application.requested_amount) : null,
+  "requested_amount"
+);
+
+await fillOptional(page, ['#street'], application.street, "street");
   await fillOptional(page, ['#street'], application.street, "street");
   await fillOptional(page, ['#house_number'], application.house_number, "house_number");
   await fillOptional(page, ['#apartment'], application.apartment || "1", "apartment");
