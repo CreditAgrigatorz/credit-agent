@@ -107,7 +107,12 @@ async function handleStep1(page: Page, application: Application) {
     "id_number"
   );
 
-  await fillRequired(page, ['#phone'], application.phone, "phone");
+  await fillRequired(
+  page,
+  ['#phone', '#mobile_phone', '#phone_number', '#customer_phone', '[name="phone"]', '[name="mobile_phone"]', 'input[type="tel"]'],
+  application.phone,
+  "phone"
+);
 
   await fillOptional(page, ['#id_issue_date'], application.id_issue_date, "id_issue_date");
   await fillOptional(page, ['#birth_date'], application.birth_date, "birth_date");
