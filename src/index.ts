@@ -14,8 +14,8 @@ type AgentRun = {
 };
 
 type Application = {
-  requested_amount: number | null;
   id: string;
+  requested_amount: number | null;
   first_name: string | null;
   last_name: string | null;
   id_number: string | null;
@@ -30,8 +30,12 @@ type Application = {
   apartment: string | null;
 };
 
-// ===== REQUIRED FIELD =====
-async function fillRequired(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
+async function fillRequired(
+  page: Page,
+  selectors: string[],
+  value: string | null | undefined,
+  fieldName: string
+) {
   if (!value) {
     throw new Error(`Missing value for ${fieldName}`);
   }
@@ -44,7 +48,6 @@ async function fillRequired(page: Page, selectors: string[], value: string | nul
 
     if (count > 0) {
       await locator.fill(value);
-
       const actualValue = await locator.inputValue().catch(() => "");
       console.log(`[${fieldName}] filled with ${selector} = ${actualValue}`);
       return;
@@ -54,8 +57,12 @@ async function fillRequired(page: Page, selectors: string[], value: string | nul
   throw new Error(`Selector not found for ${fieldName}: ${selectors.join(" | ")}`);
 }
 
-// ===== OPTIONAL FIELD =====
-async function fillOptional(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
+async function fillOptional(
+  page: Page,
+  selectors: string[],
+  value: string | null | undefined,
+  fieldName: string
+) {
   if (!value) {
     console.log(`[${fieldName}] skipped`);
     return;
@@ -75,7 +82,12 @@ async function fillOptional(page: Page, selectors: string[], value: string | nul
   console.log(`[${fieldName}] no selector matched`);
 }
 
-async function selectOptional(page: Page, selectors: string[], value: string | null | undefined, fieldName: string) {
+async function selectOptional(
+  page: Page,
+  selectors: string[],
+  value: string | null | undefined,
+  fieldName: string
+) {
   if (!value) {
     console.log(`[${fieldName}] skipped`);
     return;
@@ -87,7 +99,7 @@ async function selectOptional(page: Page, selectors: string[], value: string | n
 
     if (count > 0) {
       await locator.selectOption({ label: value }).catch(async () => {
-        await locator.selectOption({ value: value }).catch(async () => {
+        await locator.selectOption({ value }).catch(async () => {
           const options = await locator.locator("option").allTextContents();
           const matched = options.find((opt) => opt.trim() === value.trim());
 
@@ -108,86 +120,70 @@ async function selectOptional(page: Page, selectors: string[], value: string | n
   console.log(`[${fieldName}] no selector matched`);
 }
 
-// ===== CHECKBOX =====
-async function checkRequired(page: Page, selectors: string[], fieldName: string) {
-  for (const selector of selectors) {
-    const locator = page.locator(selector).first();
-    const count = await locator.count();
-
-    if (count > 0) {
-      await locator.check().catch(async () => {
-        await locator.click();
-      });
-
-      console.log(`[${fieldName}] checked`);
-      return;
-    }
-  }
-
-  throw new Error(`Checkbox not found for ${fieldName}`);
-}
-
-// ===== STEP 1 =====
 async function handleStep1(page: Page, application: Application) {
   console.log("Starting Step 1");
 
-  await fillRequired(page, ['#first_name'], application.first_name, "first_name");
-  await fillRequired(page, ['#last_name'], application.last_name, "last_name");
+  await fillRequired(page, ["#first_name"], application.first_name, "first_name");
+  await fillRequired(page, ["#last_name"], application.last_name, "last_name");
 
   await fillRequired(
     page,
-    ['#customer_id', '#id_number', '[name="id_number"]'],
+    ["#customer_id", "#id_number", '[name="id_number"]'],
     application.id_number,
     "id_number"
   );
 
   await fillRequired(
-  page,
-  ['#phone', '#mobile_phone', '#phone_number', '#customer_phone', '[name="phone"]', '[name="mobile_phone"]', 'input[type="tel"]'],
-  application.phone,
-  "phone"
-);
+    page,
+    [
+      "#phone",
+      "#mobile_phone",
+      "#phone_number",
+      "#customer_phone",
+      '[name="phone"]',
+      '[name="mobile_phone"]',
+      'input[type="tel"]',
+    ],
+    application.phone,
+    "phone"
+  );
 
   await fillOptional(
-  page,
-  ['#estimated_amount'],
-  application.requested_amount ? String(application.requested_amount) : null,
-  "requested_amount"
-);
-  
-  await fillOptional(page, ['#id_issue_date'], application.id_issue_date, "id_issue_date");
-  await fillOptional(page, ['#birth_date'], application.birth_date, "birth_date");
+    page,
+    ["#estimated_amount"],
+    application.requested_amount ? String(application.requested_amount) : null,
+    "requested_amount"
+  );
+
+  await fillOptional(page, ["#id_issue_date"], application.id_issue_date, "id_issue_date");
+  await fillOptional(page, ["#birth_date"], application.birth_date, "birth_date");
+
   if (application.gender === "זכר") {
-  await page.click('text=זכר');
-} else if (application.gender === "נקבה") {
-  await page.click('text=נקבה');
-}
-  await selectOptional(page, ['#marital_status'], application.marital_status, "marital_status");
-  await fillOptional(page, ['#city'], application.city, "city");
-  wait fillOptional(page, ['#city'], application.city, "city");
+    await page.click("text=זכר");
+  } else if (application.gender === "נקבה") {
+    await page.click("text=נקבה");
+  }
 
-await fillOptional(
-  page,
-  ['#estimated_amount'],
-  application.requested_amount ? String(application.requested_amount) : null,
-  "requested_amount"
-);
-
-await fillOptional(page, ['#street'], application.street, "street");
-  await fillOptional(page, ['#street'], application.street, "street");
-  await fillOptional(page, ['#house_number'], application.house_number, "house_number");
-  await fillOptional(page, ['#apartment'], application.apartment || "1", "apartment");
+  await selectOptional(page, ["#marital_status"], application.marital_status, "marital_status");
+  await fillOptional(page, ["#city"], application.city, "city");
+  await fillOptional(page, ["#street"], application.street, "street");
+  await fillOptional(page, ["#house_number"], application.house_number, "house_number");
+  await fillOptional(
+    page,
+    ["#apartment", "#apartment_number", "#apt", '[name="apartment"]'],
+    application.apartment || "1",
+    "apartment"
+  );
 
   try {
-  await page.click('text=אני מאשר');
-} catch {
-  console.log("Declaration checkbox not found by text");
-}
+    await page.click("text=אני מאשר");
+  } catch {
+    console.log("Declaration checkbox not found by text");
+  }
 
   console.log("Step 1 filled successfully");
 }
 
-// ===== MAIN =====
 async function main() {
   console.log("credit-agent started");
 
@@ -196,7 +192,7 @@ async function main() {
   if (!SIMULATION_URL) throw new Error("Missing SIMULATION_URL");
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
+    auth: { persistSession: false },
   });
 
   console.log("Checking for pending runs...");
@@ -226,7 +222,9 @@ async function main() {
     .eq("id", run.application_id)
     .single();
 
-  if (appError) throw new Error(appError.message);
+  if (appError) {
+    throw new Error(appError.message);
+  }
 
   console.log("Application:", application.id);
 
