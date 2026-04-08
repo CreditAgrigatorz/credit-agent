@@ -250,6 +250,13 @@ async function main() {
       });
 
     console.log("Screenshot uploaded");
+    await supabase
+  .from("agent_runs")
+  .update({
+    status: "completed",
+    finished_at: new Date().toISOString(),
+  })
+  .eq("id", run.id);
   } finally {
     await browser.close();
   }
