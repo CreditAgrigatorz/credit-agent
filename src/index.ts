@@ -219,23 +219,16 @@ async function saveScreenshot(
 }
 
 async function goToStep2(page: Page) {
-  console.log("Moving to Step 2");
+  console.log("Moving from Step 1 to Step 2");
 
-  const label = page.locator('label[for="finance_declaration"]').first();
+  const nextButton = page.locator("#next-1").first();
 
-  await label.waitFor({ state: "visible", timeout: 10000 });
-
-  await label.click();
-
-  console.log("Clicked finance_declaration label");
-
-  const nextButton = page.locator("#next-2").first();
-
-  await page.waitForTimeout(300);
+  await nextButton.waitFor({
+    state: "visible",
+    timeout: 10000,
+  });
 
   await nextButton.click();
-
-  console.log("Clicked next-2");
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
@@ -287,16 +280,19 @@ async function selectRequired(
 async function handleStep2(page: Page, application: Application) {
   console.log("Starting Step 2");
 
+  const financeDeclaration = page.locator("#finance_declaration").first();
+  if (await financeDeclaration.count()) {
+    await financeDeclaration.evaluate((el: HTMLInputElement) => {
+      el.checked = true;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    console.log("finance_declaration activated");
+  }
+
   await selectRequired(page, ["#bank_name"], application.bank_name, "bank_name");
-
   await fillRequired(page, ["#branch_name"], application.branch_name, "branch_name");
-
-  await fillRequired(
-    page,
-    ["#account_number"],
-    application.account_number,
-    "account_number"
-  );
+  await fillRequired(page, ["#account_number"], application.account_number, "account_number");
 
   const hasCreditCard = normalizeBoolean(application.has_credit_card);
 
@@ -331,6 +327,11 @@ async function handleStep2(page: Page, application: Application) {
     console.log("Selected: no credit card");
   }
 
+  const nextButton = page.locator("#next-2").first();
+  await nextButton.waitFor({ state: "visible", timeout: 10000 });
+  await nextButton.click();
+
+  console.log("Clicked next-2");
   console.log("Step 2 filled successfully");
 }
 
