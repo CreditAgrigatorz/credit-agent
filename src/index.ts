@@ -6,6 +6,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SIMULATION_URL = process.env.SIMULATION_URL || "";
 const HEADLESS = process.env.HEADLESS === "true";
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || "10000");
 
 type AgentRun = {
   id: string;
@@ -184,9 +185,11 @@ async function handleStep1(page: Page, application: Application) {
   console.log("Step 1 filled successfully");
 }
 
-async function main() {
-  console.log("credit-agent started");
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+async function processSingleRun() {
   if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
   if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
   if (!SIMULATION_URL) throw new Error("Missing SIMULATION_URL");
@@ -216,6 +219,19 @@ async function main() {
   const run = runs[0] as AgentRun;
   console.log("Run:", run.id);
 
+  const { error: runningError } = await supabase
+    .from("agent_runs")
+    .update({
+      status: "running",
+      started_at: new Date().toISOString(),
+    })
+    .eq("id", run.id)
+    .eq("status", "pending");
+
+  if (runningError) {
+    throw new Error(`Failed to mark run as running: ${runningError.message}`);
+  }
+
   const { data: application, error: appError } = await supabase
     .from("applications")
     .select("*")
@@ -223,6 +239,15 @@ async function main() {
     .single();
 
   if (appError) {
+    await supabase
+      .from("agent_runs")
+      .update({
+        status: "failed",
+        finished_at: new Date().toISOString(),
+        error_message: appError.message,
+      })
+      .eq("id", run.id);
+
     throw new Error(appError.message);
   }
 
@@ -250,19 +275,56 @@ async function main() {
       });
 
     console.log("Screenshot uploaded");
+
+    const { error: successError } = await supabase
+      .from("agent_runs")
+      .update({
+        status: "success",
+        finished_at: new Date().toISOString(),
+        error_message: null,
+      })
+      .eq("id", run.id);
+
+    if (successError) {
+      throw new Error(`Failed to mark run as success: ${successError.message}`);
+    }
+
+    console.log(`Run ${run.id} completed successfully`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+
     await supabase
-  .from("agent_runs")
-  .update({
-    status: "completed",
-    finished_at: new Date().toISOString(),
-  })
-  .eq("id", run.id);
+      .from("agent_runs")
+      .update({
+        status: "failed",
+        finished_at: new Date().toISOString(),
+        error_message: message,
+      })
+      .eq("id", run.id);
+
+    throw err;
   } finally {
     await browser.close();
   }
 }
 
-main().catch((err) => {
+async function startWorker() {
+  console.log("credit-agent worker started");
+
+  while (true) {
+    try {
+      await processSingleRun();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Worker cycle failed:", message);
+    }
+
+    console.log(`Sleeping for ${POLL_INTERVAL_MS}ms...`);
+    await sleep(POLL_INTERVAL_MS);
+  }
+}
+
+startWorker().catch((err) => {
   console.error("Agent failed:", err.message);
   process.exit(1);
 });
