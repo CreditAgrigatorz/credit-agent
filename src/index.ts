@@ -221,27 +221,21 @@ async function saveScreenshot(
 async function goToStep2(page: Page) {
   console.log("Moving to Step 2");
 
-  const checkbox = page.locator("#finance_declaration").first();
-  await checkbox.waitFor({ state: "attached", timeout: 10000 });
+  const label = page.locator('label[for="finance_declaration"]').first();
 
-  await checkbox.evaluate((el: HTMLInputElement) => {
-    el.checked = true;
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await label.waitFor({ state: "visible", timeout: 10000 });
 
-  console.log("finance_declaration activated via evaluate");
+  await label.click();
+
+  console.log("Clicked finance_declaration label");
+
+  const nextButton = page.locator("#next-2").first();
 
   await page.waitForTimeout(300);
 
-  const nextButton = page.locator("#next-2").first();
-  await nextButton.waitFor({ state: "attached", timeout: 10000 });
+  await nextButton.click();
 
-  await nextButton.evaluate((el: HTMLButtonElement) => {
-    el.click();
-  });
-
-  console.log("next-2 clicked via evaluate");
+  console.log("Clicked next-2");
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
