@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { chromium, Page } from "playwright";
 import fs from "fs";
 
@@ -29,6 +29,15 @@ type Application = {
   street: string | null;
   house_number: string | null;
   apartment: string | null;
+
+  bank_name: string | null;
+  branch_name: string | null;
+  account_number: string | null;
+  has_credit_card: boolean | null;
+  card_number: string | null;
+  card_exp_month: string | null;
+  card_exp_year: string | null;
+  card_cvv: string | null;
 };
 
 async function fillRequired(
@@ -185,6 +194,143 @@ async function handleStep1(page: Page, application: Application) {
   console.log("Step 1 filled successfully");
 }
 
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || value === "true" || value === "1" || value === 1;
+}
+
+async function saveScreenshot(
+  page: Page,
+  supabase: SupabaseClient,
+  fileName: string
+) {
+  const path = `/tmp/${fileName}.png`;
+
+  await page.screenshot({ path, fullPage: true });
+
+  const fileBuffer = fs.readFileSync(path);
+
+  await supabase.storage
+    .from("screenshots")
+    .upload(`${fileName}-${Date.now()}.png`, fileBuffer, {
+      contentType: "image/png",
+    });
+
+  console.log(`Screenshot uploaded: ${fileName}`);
+}
+
+async function goToStep2(page: Page) {
+  console.log("Moving to Step 2");
+
+  const declaration = page.locator("#finance_declaration").first();
+  if (await declaration.count()) {
+    try {
+      await declaration.check();
+      console.log("finance_declaration checked");
+    } catch {
+      await page.click('label[for="finance_declaration"]');
+      console.log("finance_declaration clicked by label");
+    }
+  }
+
+  await page.click("#next-2");
+
+  await page.locator("#bank_name").first().waitFor({
+    state: "visible",
+    timeout: 10000,
+  });
+
+  console.log("Step 2 opened successfully");
+}
+
+async function selectRequired(
+  page: Page,
+  selectors: string[],
+  value: string | null | undefined,
+  fieldName: string
+) {
+  if (!value) {
+    throw new Error(`Missing value for ${fieldName}`);
+  }
+
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    const count = await locator.count();
+
+    console.log(`[${fieldName}] trying select ${selector} count=${count}`);
+
+    if (count > 0) {
+      await locator.selectOption({ label: value }).catch(async () => {
+        await locator.selectOption({ value }).catch(async () => {
+          const options = await locator.locator("option").allTextContents();
+          const matched = options.find((opt) => opt.trim() === value.trim());
+
+          if (matched) {
+            await locator.selectOption({ label: matched });
+            return;
+          }
+
+          throw new Error(`No matching option for ${fieldName}: ${value}`);
+        });
+      });
+
+      console.log(`[${fieldName}] selected using ${selector}`);
+      return;
+    }
+  }
+
+  throw new Error(`Selector not found for ${fieldName}: ${selectors.join(" | ")}`);
+}
+
+async function handleStep2(page: Page, application: Application) {
+  console.log("Starting Step 2");
+
+  await selectRequired(page, ["#bank_name"], application.bank_name, "bank_name");
+
+  await fillRequired(page, ["#branch_name"], application.branch_name, "branch_name");
+
+  await fillRequired(
+    page,
+    ["#account_number"],
+    application.account_number,
+    "account_number"
+  );
+
+  const hasCreditCard = normalizeBoolean(application.has_credit_card);
+
+  if (hasCreditCard) {
+    await page.click("#cc_yes");
+    console.log("Selected: has credit card");
+
+    await fillRequired(page, ["#card_number"], application.card_number, "card_number");
+    await fillRequired(page, ["#card_cvv"], application.card_cvv, "card_cvv");
+
+    await selectRequired(
+      page,
+      ["#card_exp_month"],
+      application.card_exp_month,
+      "card_exp_month"
+    );
+
+    await selectRequired(
+      page,
+      ["#card_exp_year"],
+      application.card_exp_year,
+      "card_exp_year"
+    );
+
+    const chargeButton = page.locator("#charge_card_btn").first();
+    if (await chargeButton.count()) {
+      await chargeButton.click();
+      console.log("Clicked charge_card_btn");
+    }
+  } else {
+    await page.click("#cc_no");
+    console.log("Selected: no credit card");
+  }
+
+  console.log("Step 2 filled successfully");
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -263,18 +409,13 @@ async function processSingleRun() {
     });
 
     await handleStep1(page, application as Application);
+    await saveScreenshot(page, supabase, "step1-filled");
 
-    await page.screenshot({ path: "/tmp/step1-filled.png", fullPage: true });
+    await goToStep2(page);
+    await saveScreenshot(page, supabase, "step2-opened");
 
-    const fileBuffer = fs.readFileSync("/tmp/step1-filled.png");
-
-    await supabase.storage
-      .from("screenshots")
-      .upload(`step1-${Date.now()}.png`, fileBuffer, {
-        contentType: "image/png",
-      });
-
-    console.log("Screenshot uploaded");
+    await handleStep2(page, application as Application);
+    await saveScreenshot(page, supabase, "step2-filled");
 
     const { error: successError } = await supabase
       .from("agent_runs")
