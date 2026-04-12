@@ -222,28 +222,26 @@ async function goToStep2(page: Page) {
   console.log("Moving to Step 2");
 
   const checkbox = page.locator("#finance_declaration").first();
-
   await checkbox.waitFor({ state: "attached", timeout: 10000 });
 
-  // 👇 חשוב: שימוש ב-click אמיתי, לא evaluate
-  await checkbox.click({ delay: 50 });
+  await checkbox.evaluate((el: HTMLInputElement) => {
+    el.checked = true;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 
-  console.log("Clicked finance_declaration checkbox");
+  console.log("finance_declaration activated via evaluate");
+
+  await page.waitForTimeout(300);
 
   const nextButton = page.locator("#next-2").first();
+  await nextButton.waitFor({ state: "attached", timeout: 10000 });
 
-  // 👇 נותנים זמן ל-JS של האתר להגיב
-  await page.waitForTimeout(500);
+  await nextButton.evaluate((el: HTMLButtonElement) => {
+    el.click();
+  });
 
-  // 👇 עכשיו מחכים שהכפתור באמת יהיה enabled
-  await page.waitForFunction(() => {
-    const btn = document.querySelector("#next-2") as HTMLButtonElement | null;
-    return btn && !btn.disabled;
-  }, { timeout: 10000 });
-
-  await nextButton.click();
-
-  console.log("Clicked next-2");
+  console.log("next-2 clicked via evaluate");
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
