@@ -221,27 +221,42 @@ async function saveScreenshot(
 async function goToStep2(page: Page) {
   console.log("Moving to Step 2");
 
-  const declaration = page.locator("#finance_declaration").first();
+  const checkbox = page.locator("#finance_declaration").first();
 
-  if (await declaration.count()) {
-    try {
-      const isChecked = await declaration.isChecked().catch(() => false);
+  if (await checkbox.count()) {
+    const isChecked = await checkbox.isChecked().catch(() => false);
 
-      if (!isChecked) {
-        await declaration.check({ force: true });
-        console.log("finance_declaration checked");
-      } else {
-        console.log("finance_declaration already checked");
+    if (!isChecked) {
+      try {
+        await checkbox.check({ force: true });
+        console.log("Checkbox checked via .check()");
+      } catch {
+        console.log("check() failed, trying label click");
+
+        const label = page.locator('label[for="finance_declaration"]').first();
+
+        if (await label.count()) {
+          await label.click({ force: true });
+          console.log("Checkbox checked via label click");
+        } else {
+          throw new Error("Could not find finance_declaration label");
+        }
       }
-    } catch (err) {
-      console.log("finance_declaration could not be checked directly, continuing");
+    } else {
+      console.log("Checkbox already checked");
     }
   } else {
-    console.log("finance_declaration not found, continuing");
+    throw new Error("finance_declaration checkbox not found");
   }
 
+  // 👇 חשוב מאוד – מחכים שהכפתור באמת יהפוך ל-visible
   const nextButton = page.locator("#next-2").first();
-  await nextButton.waitFor({ state: "visible", timeout: 10000 });
+
+  await nextButton.waitFor({
+    state: "visible",
+    timeout: 10000,
+  });
+
   await nextButton.click();
 
   await page.locator("#bank_name").first().waitFor({
