@@ -223,30 +223,27 @@ async function goToStep2(page: Page) {
 
   const checkbox = page.locator("#finance_declaration").first();
 
-  if (!(await checkbox.count())) {
-    throw new Error("finance_declaration checkbox not found");
-  }
+  await checkbox.waitFor({ state: "attached", timeout: 10000 });
 
-  const isChecked = await checkbox.isChecked().catch(() => false);
+  // 👇 חשוב: שימוש ב-click אמיתי, לא evaluate
+  await checkbox.click({ delay: 50 });
 
-  if (!isChecked) {
-    await checkbox.evaluate((el: any) => {
-      el.checked = true;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-
-    console.log("finance_declaration set via evaluate()");
-  } else {
-    console.log("finance_declaration already checked");
-  }
+  console.log("Clicked finance_declaration checkbox");
 
   const nextButton = page.locator("#next-2").first();
 
-  // ⛔ לא מחכים ל-visible
-  await nextButton.click({ force: true });
+  // 👇 נותנים זמן ל-JS של האתר להגיב
+  await page.waitForTimeout(500);
 
-  console.log("Clicked next-2 (forced)");
+  // 👇 עכשיו מחכים שהכפתור באמת יהיה enabled
+  await page.waitForFunction(() => {
+    const btn = document.querySelector("#next-2") as HTMLButtonElement | null;
+    return btn && !btn.disabled;
+  }, { timeout: 10000 });
+
+  await nextButton.click();
+
+  console.log("Clicked next-2");
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
