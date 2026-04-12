@@ -222,17 +222,27 @@ async function goToStep2(page: Page) {
   console.log("Moving to Step 2");
 
   const declaration = page.locator("#finance_declaration").first();
+
   if (await declaration.count()) {
     try {
-      await declaration.check();
-      console.log("finance_declaration checked");
-    } catch {
-      await page.click('label[for="finance_declaration"]');
-      console.log("finance_declaration clicked by label");
+      const isChecked = await declaration.isChecked().catch(() => false);
+
+      if (!isChecked) {
+        await declaration.check({ force: true });
+        console.log("finance_declaration checked");
+      } else {
+        console.log("finance_declaration already checked");
+      }
+    } catch (err) {
+      console.log("finance_declaration could not be checked directly, continuing");
     }
+  } else {
+    console.log("finance_declaration not found, continuing");
   }
 
-  await page.click("#next-2");
+  const nextButton = page.locator("#next-2").first();
+  await nextButton.waitFor({ state: "visible", timeout: 10000 });
+  await nextButton.click();
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
