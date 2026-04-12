@@ -227,32 +227,26 @@ async function goToStep2(page: Page) {
     throw new Error("finance_declaration checkbox not found");
   }
 
-  try {
-    const isChecked = await checkbox.isChecked().catch(() => false);
+  const isChecked = await checkbox.isChecked().catch(() => false);
 
-    if (!isChecked) {
-      await checkbox.evaluate((el: any) => {
-        el.checked = true;
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      });
+  if (!isChecked) {
+    await checkbox.evaluate((el: any) => {
+      el.checked = true;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
 
-      console.log("finance_declaration set via evaluate()");
-    } else {
-      console.log("finance_declaration already checked");
-    }
-  } catch (err) {
-    throw new Error("Could not activate finance_declaration checkbox");
+    console.log("finance_declaration set via evaluate()");
+  } else {
+    console.log("finance_declaration already checked");
   }
 
   const nextButton = page.locator("#next-2").first();
 
-  await page.waitForFunction(() => {
-    const btn = document.querySelector("#next-2") as HTMLButtonElement | null;
-    return !!btn && !btn.hidden && btn.offsetParent !== null;
-  }, { timeout: 10000 });
+  // ⛔ לא מחכים ל-visible
+  await nextButton.click({ force: true });
 
-  await nextButton.click();
+  console.log("Clicked next-2 (forced)");
 
   await page.locator("#bank_name").first().waitFor({
     state: "visible",
