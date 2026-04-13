@@ -327,10 +327,12 @@ if (await chargeButton.count()) {
   });
   console.log("Charge process started");
 
-  await page.locator('[data-step="3"]').waitFor({
-    state: "visible",
-    timeout: 10000,
-  });
+  await page.waitForFunction(() => {
+  const el = document.querySelector('[data-step="3"]');
+  return el && el.classList.contains('active');
+}, { timeout: 10000 });
+
+console.log("Step 3 opened successfully");
   console.log("Step 3 opened successfully");
 }
   } else {
