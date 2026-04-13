@@ -318,10 +318,21 @@ async function handleStep2(page: Page, application: Application) {
     );
 
     const chargeButton = page.locator("#charge_card_btn").first();
-    if (await chargeButton.count()) {
-      await chargeButton.click();
-      console.log("Clicked charge_card_btn");
-    }
+if (await chargeButton.count()) {
+  await chargeButton.click();
+  console.log("Clicked charge_card_btn");
+
+  await page.locator("text=מתבצע אישור חיוב").waitFor({
+    timeout: 5000,
+  });
+  console.log("Charge process started");
+
+  await page.locator('[data-step="3"]').waitFor({
+    state: "visible",
+    timeout: 10000,
+  });
+  console.log("Step 3 opened successfully");
+}
   } else {
     await page.click("#cc_no");
     console.log("Selected: no credit card");
