@@ -324,7 +324,12 @@ async function handleStep2(page: Page, application: Application) {
 
   const financeDeclaration = page.locator("#finance_declaration").first();
   if (await financeDeclaration.count()) {
-    await financeDeclaration.evaluate((el: HTMLInputElement) => {
+    await financeDeclaration.evaluate((el) => {
+  const input = el as HTMLInputElement;
+  input.checked = true;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+});
       el.checked = true;
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -343,18 +348,6 @@ async function handleStep2(page: Page, application: Application) {
   }, { timeout: 10000 });
 
   console.log("Step 3 opened successfully");
-}
-  } else {
-    await page.click("#cc_no");
-    console.log("Selected: no credit card");
-  }
-
-  const nextButton = page.locator("#next-2").first();
-  await nextButton.waitFor({ state: "visible", timeout: 10000 });
-  await nextButton.click();
-
-  console.log("Clicked next-2");
-  console.log("Step 2 filled successfully");
 }
 
 function sleep(ms: number) {
