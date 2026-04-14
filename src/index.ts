@@ -280,16 +280,6 @@ async function selectRequired(
 async function handleStep2(page: Page, application: Application) {
   console.log("Starting Step 2");
 
-  const financeDeclaration = page.locator("#finance_declaration").first();
-  if (await financeDeclaration.count()) {
-    await financeDeclaration.evaluate((el: HTMLInputElement) => {
-      el.checked = true;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    console.log("finance_declaration activated");
-  }
-
   await selectRequired(page, ["#bank_name"], application.bank_name, "bank_name");
   await fillRequired(page, ["#branch_name"], application.branch_name, "branch_name");
   await fillRequired(page, ["#account_number"], application.account_number, "account_number");
@@ -318,21 +308,40 @@ async function handleStep2(page: Page, application: Application) {
     );
 
     const chargeButton = page.locator("#charge_card_btn").first();
-if (await chargeButton.count()) {
-  await chargeButton.click();
-  console.log("Clicked charge_card_btn");
+    await chargeButton.waitFor({ state: "visible", timeout: 10000 });
+    await chargeButton.click();
+    console.log("Clicked charge_card_btn");
 
-  await page.locator("text=מתבצע אישור חיוב").waitFor({
-    timeout: 5000,
-  });
-  console.log("Charge process started");
+    await page.locator("text=אישור חיוב הושלם בהצלחה").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    console.log("Charge completed successfully");
+  } else {
+    await page.click("#cc_no");
+    console.log("Selected: no credit card");
+  }
+
+  const financeDeclaration = page.locator("#finance_declaration").first();
+  if (await financeDeclaration.count()) {
+    await financeDeclaration.evaluate((el: HTMLInputElement) => {
+      el.checked = true;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    console.log("finance_declaration activated");
+  }
+
+  const nextButton = page.locator("#next-2").first();
+  await nextButton.waitFor({ state: "visible", timeout: 10000 });
+  await nextButton.click();
+  console.log("Clicked next-2");
 
   await page.waitForFunction(() => {
-  const el = document.querySelector('[data-step="3"]');
-  return el && el.classList.contains('active');
-}, { timeout: 10000 });
+    const el = document.querySelector('[data-step="3"]');
+    return !!el && el.classList.contains("active");
+  }, { timeout: 10000 });
 
-console.log("Step 3 opened successfully");
   console.log("Step 3 opened successfully");
 }
   } else {
