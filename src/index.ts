@@ -323,19 +323,15 @@ async function handleStep2(page: Page, application: Application) {
   }
 
   const financeDeclaration = page.locator("#finance_declaration").first();
-  if (await financeDeclaration.count()) {
-    await financeDeclaration.evaluate((el) => {
-  const input = el as HTMLInputElement;
-  input.checked = true;
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-  input.dispatchEvent(new Event("change", { bubbles: true }));
-});
-      el.checked = true;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    console.log("finance_declaration activated");
-  }
+if (await financeDeclaration.count()) {
+  await financeDeclaration.evaluate((el) => {
+    const input = el as HTMLInputElement;
+    input.checked = true;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  console.log("finance_declaration activated");
+}
 
   const nextButton = page.locator("#next-2").first();
   await nextButton.waitFor({ state: "visible", timeout: 10000 });
