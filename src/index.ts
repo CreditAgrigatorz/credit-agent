@@ -345,7 +345,36 @@ if (await financeDeclaration.count()) {
 
   console.log("Step 3 opened successfully");
 }
+async function handleStep3(page: Page) {
+  console.log("Starting Step 3");
 
+  await selectRequired(
+    page,
+    ["#extra_payer"],
+    "לא, אני מחזיר בעצמי",
+    "extra_payer"
+  );
+
+  await selectRequired(
+    page,
+    ["#repayment_source"],
+    "הכנסה משכר",
+    "repayment_source"
+  );
+
+  const nextButton = page.locator("#next-3").first();
+  await nextButton.waitFor({ state: "visible", timeout: 10000 });
+  await nextButton.click();
+
+  console.log("Clicked next-3");
+
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-step="4"]');
+    return !!el && el.classList.contains("active");
+  }, { timeout: 10000 });
+
+  console.log("Step 4 opened successfully");
+}
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -430,7 +459,11 @@ async function processSingleRun() {
     await saveScreenshot(page, supabase, "step2-opened");
 
     await handleStep2(page, application as Application);
-    await saveScreenshot(page, supabase, "step2-filled");
+    await saveScreenshot(page, supabase, "step3-opened");
+
+    await handleStep3(page);
+    await saveScreenshot(page, supabase, "step3-filled");
+    
 
     const { error: successError } = await supabase
       .from("agent_runs")
